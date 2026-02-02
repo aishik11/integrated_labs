@@ -32,6 +32,7 @@ test: all
 	./tests/run_tests.sh
 
 $(TARGET): $(OBJS)
+	mkdir -p bin
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(PARSER_GEN_SRC) $(PARSER_GEN_HDR): $(PARSER_SRC)

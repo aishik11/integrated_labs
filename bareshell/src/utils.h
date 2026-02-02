@@ -1,6 +1,11 @@
 #pragma once
 #include "parser/command.h" 
+#include "jobs.h"
 #include <unistd.h> 
+
+#define MAX_JOBS 10
+extern Job job_table[MAX_JOBS];
+extern int job_count;
 
 int resolve_program_path(const char *program_name, char *out, int out_size);
 int execute_commands(struct Command *command_ptr);

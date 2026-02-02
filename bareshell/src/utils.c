@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include "utils.h"
 #include "parser/command.h"
 #include <fcntl.h>
@@ -8,6 +9,9 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+Job job_table[MAX_JOBS];
+int job_count = 0;
 
 int resolve_program_path(const char *program_name, char *out, int out_size) {
   char *path_env = getenv("PATH");
@@ -46,6 +50,145 @@ int resolve_program_path(const char *program_name, char *out, int out_size) {
   return -1;
 }
 
+int execute_submit(struct Command *cmd) {
+    if (job_count >= MAX_JOBS) {
+        fprintf(stderr, "Job table full\n");
+        return -1;
+    }
+    if (cmd->args[1] == NULL) {
+        fprintf(stderr, "Usage: submit <program.asm>\n");
+        return -1;
+    }
+
+    char *asm_file = cmd->args[1];
+    char bin_file[256];
+    snprintf(bin_file, sizeof(bin_file), "%.*s.bin", (int)(strrchr(asm_file, '.') - asm_file), asm_file);
+    
+    char assembler_cmd[512];
+    snprintf(assembler_cmd, sizeof(assembler_cmd), "bytecode_vm/build/assembler %s %s", asm_file, bin_file);
+    if (system(assembler_cmd) != 0) {
+        fprintf(stderr, "Assembly failed\n");
+        return -1;
+    }
+
+    pid_t pid = fork();
+    if (pid == 0) {
+      
+        raise(SIGSTOP); 
+        
+        char *bvm_args[] = {"bvm", bin_file, NULL};
+        
+        execvp("bytecode_vm/build/bvm", bvm_args);  
+        perror("execvp bvm");
+        exit(1);
+    } else if (pid > 0) {
+        // Parent
+        int status;
+        waitpid(pid, &status, WUNTRACED); 
+        
+        Job new_job;
+        new_job.id = job_count + 1; 
+        new_job.pid = pid;
+        new_job.filename = strdup(asm_file);
+        new_job.binary_filename = strdup(bin_file);
+        new_job.status = JOB_STATUS_SUBMITTED;
+        
+        job_table[job_count++] = new_job;
+        printf("Submitted Program %s as Job %d (PID %d)\n", asm_file, new_job.id, pid);
+    } else {
+        perror("fork");
+        return -1;
+    }
+    return 0;
+}
+
+int execute_run_job(struct Command *cmd) {
+    if (cmd->args[1] == NULL) {
+        fprintf(stderr, "Usage: run <job_id>\n");
+        return -1;
+    }
+    int job_id = atoi(cmd->args[1]);
+    int job_idx = -1;
+    for (int i=0; i<job_count; i++) {
+        if (job_table[i].id == job_id) {
+            job_idx = i;
+            break;
+        }
+    }
+    
+    if (job_idx == -1) {
+        fprintf(stderr, "Job %d not found\n", job_id);
+        return -1;
+    }
+
+    pid_t pid = job_table[job_idx].pid;
+    printf("Resuming Job %d (PID %d)...\n", job_id, pid);
+    job_table[job_idx].status = JOB_STATUS_RUNNING;
+
+    
+    if (kill(pid, SIGCONT) == -1) {
+        perror("kill SIGCONT");
+        return -1;
+    }
+
+    int status;
+
+    
+    if (tcsetpgrp(STDIN_FILENO, pid) == -1) {
+         // perror("tcsetpgrp"); // might fail if session mismatch, ignore for now
+    }
+    
+    waitpid(pid, &status, WUNTRACED);
+    
+    if (tcsetpgrp(STDIN_FILENO, getpid()) == -1) {
+        // perror("tcsetpgrp back");
+    }
+
+    if (WIFEXITED(status)) {
+        printf("Job %d finished with exit code %d\n", job_id, WEXITSTATUS(status));
+        job_table[job_idx].status = JOB_STATUS_FINISHED;
+    } else if (WIFSIGNALED(status)) {
+        printf("Job %d terminated by signal %d\n", job_id, WTERMSIG(status));
+        job_table[job_idx].status = JOB_STATUS_TERMINATED;
+    } else if (WIFSTOPPED(status)) {
+        printf("Job %d stopped by signal %d\n", job_id, WSTOPSIG(status));
+        // stays running/stopped?
+    }
+    
+    return 0;
+}
+
+int execute_debug_job(struct Command *cmd) {
+  
+    
+    if (cmd->args[1] == NULL) {
+        fprintf(stderr, "Usage: debug <job_id>\n");
+        return -1;
+    }
+    int job_id = atoi(cmd->args[1]);
+     int job_idx = -1;
+    for (int i=0; i<job_count; i++) {
+        if (job_table[i].id == job_id) {
+            job_idx = i;
+            break;
+        }
+    }
+    if (job_idx == -1) {
+        fprintf(stderr, "Job %d not found\n", job_id);
+        return -1;
+    }
+    
+    pid_t pid = job_table[job_idx].pid;
+    
+    // Send signal to enable debug mode in VM
+    // We assume VM handles SIGUSR1 to set debug_mode = true
+    kill(pid, SIGUSR1); 
+    
+    // Now resume
+    return execute_run_job(cmd);
+}
+
+
 int execute_commands(struct Command *command_ptr) {
 
   int prev_pipe_read = STDIN_FILENO;
@@ -53,6 +196,19 @@ int execute_commands(struct Command *command_ptr) {
   pid_t first_pid = 0;
   int is_background = 0;
   is_background = command_ptr->is_background;
+
+  // Intercept submit / run / debug
+  if (command_ptr->next_command == NULL) {
+      if (strcmp(command_ptr->prog_name, "submit") == 0) {
+          return execute_submit(command_ptr);
+      }
+      if (strcmp(command_ptr->prog_name, "run") == 0) {
+          return execute_run_job(command_ptr);
+      }
+      if (strcmp(command_ptr->prog_name, "debug") == 0) {
+          return execute_debug_job(command_ptr);
+      }
+  }
 
   // handling exit
   if (command_ptr->next_command == NULL &&
@@ -95,6 +251,8 @@ int execute_commands(struct Command *command_ptr) {
       command_ptr = command_ptr->next_command;
       continue;
     }
+    
+    // Check for submit/run in pipes? (Unlikely requirement for now)
 
     if (!is_last) {
       if (pipe(pipe_fd) == -1) {

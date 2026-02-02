@@ -7,7 +7,7 @@ BUILDDIR = build
 TESTDIR = test
 TARGET = bvm
 
-all: $(BUILDDIR)/$(TARGET)
+all: $(BUILDDIR)/$(TARGET) assembler
 
 $(BUILDDIR)/$(TARGET): $(SRCDIR)/main.cpp $(SRCDIR)/stack.cpp $(SRCDIR)/stack.hpp $(SRCDIR)/memory.cpp $(SRCDIR)/memory.hpp $(SRCDIR)/vm.cpp $(SRCDIR)/vm.hpp $(SRCDIR)/op_codes.cpp $(SRCDIR)/op_codes.hpp
 	mkdir -p $(BUILDDIR)

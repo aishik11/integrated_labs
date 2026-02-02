@@ -1,0 +1,3 @@
+submit simple_exit.asm
+run 1
+exit
