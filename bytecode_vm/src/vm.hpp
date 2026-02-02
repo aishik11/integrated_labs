@@ -5,6 +5,7 @@
 #include "object.hpp"
 #include "stack.hpp"
 #include <string>
+#include <set>
 
 class VM {
 public:
@@ -17,6 +18,8 @@ public:
   Memory data_memory;
   unsigned long pc;
   bool verbose;
+  bool debug_mode;
+  std::set<unsigned long> breakpoints;
 
   Object *heap_head;
   size_t num_objects;
@@ -32,6 +35,9 @@ public:
 
   void load(const std::string &filename);
   void run();
+  void run_debug(); // Main loop variant for debug mode
+  void repl();      // Read-Eval-Print Loop for debug commands
+  void step();      // Execute single instruction
   void setVerbose(bool v);
   void printStack();
 
