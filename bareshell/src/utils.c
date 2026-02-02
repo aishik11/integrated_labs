@@ -73,7 +73,14 @@ int execute_submit(struct Command *cmd) {
 
     pid_t pid = fork();
     if (pid == 0) {
-      
+        setpgid(0, 0); // Create new process group
+        
+        // Block SIGUSR1 so it doesn't kill us before exec/handler setup
+        sigset_t set;
+        sigemptyset(&set);
+        sigaddset(&set, SIGUSR1);
+        sigprocmask(SIG_BLOCK, &set, NULL);
+
         raise(SIGSTOP); 
         
         char *bvm_args[] = {"bvm", bin_file, NULL};
@@ -83,6 +90,8 @@ int execute_submit(struct Command *cmd) {
         exit(1);
     } else if (pid > 0) {
         // Parent
+        setpgid(pid, pid); // Ensure group is set
+        
         int status;
         waitpid(pid, &status, WUNTRACED); 
         
@@ -132,17 +141,23 @@ int execute_run_job(struct Command *cmd) {
     }
 
     int status;
-
     
+    // Ignore SIGTTOU to avoid shell stopping when manipulating terminal group
+    signal(SIGTTOU, SIG_IGN);
+
+    // Give terminal control to the job's process group
     if (tcsetpgrp(STDIN_FILENO, pid) == -1) {
-         // perror("tcsetpgrp"); // might fail if session mismatch, ignore for now
+         perror("tcsetpgrp to child"); 
     }
     
     waitpid(pid, &status, WUNTRACED);
     
+    // Regain terminal control
     if (tcsetpgrp(STDIN_FILENO, getpid()) == -1) {
-        // perror("tcsetpgrp back");
+        perror("tcsetpgrp to parent");
     }
+    
+    signal(SIGTTOU, SIG_DFL);
 
     if (WIFEXITED(status)) {
         printf("Job %d finished with exit code %d\n", job_id, WEXITSTATUS(status));
@@ -152,7 +167,10 @@ int execute_run_job(struct Command *cmd) {
         job_table[job_idx].status = JOB_STATUS_TERMINATED;
     } else if (WIFSTOPPED(status)) {
         printf("Job %d stopped by signal %d\n", job_id, WSTOPSIG(status));
-        // stays running/stopped?
+        // status is SUBMITTED or effectively STOPPED.
+        // We can reuse SUBMITTED or add a STOPPED status.
+        // For now, keep it valid for 'run' again.
+        job_table[job_idx].status = JOB_STATUS_SUBMITTED; 
     }
     
     return 0;

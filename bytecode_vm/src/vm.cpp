@@ -143,14 +143,11 @@ void VM::gc() {
 
 void gc(VM &vm) { vm.gc(); }
 
-void VM::run() {
-  if (verbose) {
-    std::cout << "VM running in verbose mode..." << std::endl;
-  } else {
-    std::cout << "VM running..." << std::endl;
-  }
 
-  while (true) {
+
+
+
+void VM::step() {
     if (pc >= MEM_SIZE) {
       throw std::runtime_error(
           "VM Runtime Error: Program Counter out of bounds.");
@@ -344,12 +341,84 @@ void VM::run() {
     case HALT:
       if (verbose)
         std::cout << " (HALT)" << std::endl;
+      // We need to signal halt to the run loop. 
+      // For now, let's throw a special exception or rely on run checking HALT? 
+      // Step just executes. The PC won't advance past HALT if we mistakenly executed it... 
+      // Actually, HALT returns in the original code. 
+      // We should probably have a running flag or throw specific Exit exception.
+      throw std::runtime_error("HALT"); 
       return;
     default:
       throw std::runtime_error(
           "VM Runtime Error: Unimplemented or unknown opcode: " +
           opcodeToString(opcode));
     }
+}
+
+void VM::repl() {
+    std::string line;
+    while (true) {
+        std::cout << "debug> ";
+        if (!std::getline(std::cin, line)) {
+            break;
+        }
+        if (line == "step" || line == "s") {
+            // Executing one step means: return to run loop, let it call step(), then loop back and call repl() if debug_mode is true.
+            // But if we return, run() will execute.
+            // Requirement: "step command to execute one instruction at a time"
+            // If debug_mode is on, run() looks like:
+            // while(true) { if(debug) repl(); step(); }
+            // So if repl returns, step() runs ONCE. Then loop. Then repl() again.
+            // So simply returning from repl() achieves "step".
+            return;
+        } else if (line == "continue" || line == "c") {
+            debug_mode = false;
+            return;
+        } else if (line.rfind("break ", 0) == 0) {
+            try {
+                unsigned long addr = std::stoul(line.substr(6));
+                breakpoints.insert(addr);
+                std::cout << "Breakpoint set at " << addr << std::endl;
+            } catch (...) {
+                std::cout << "Invalid address" << std::endl;
+            }
+        } else if (line == "stack") {
+            printStack();
+        } else if (line == "help") {
+            std::cout << "Commands: step(s), continue(c), break <addr>, stack" << std::endl;
+        } else if (line == "quit") {
+            exit(0);
+        } else {
+             std::cout << "Unknown command" << std::endl;
+        }
+    }
+}
+
+// Unused stub to satisfy header if needed, or we can remove from header.
+void VM::run_debug() { run(); }
+
+void VM::run() {
+  if (verbose) {
+    std::cout << "VM running in verbose mode..." << std::endl;
+  } else {
+    std::cout << "VM running..." << std::endl;
+  }
+
+  while (true) {
+      if (debug_mode || breakpoints.count(pc)) {
+          debug_mode = true; // Hit breakpoint triggers debug mode
+          std::cout << "Stopped at PC: " << pc << std::endl;
+          repl();
+      }
+      
+      try {
+          step();
+      } catch (const std::runtime_error& e) {
+          if (std::string(e.what()) == "HALT") {
+              break;
+          }
+          throw;
+      }
   }
 }
 
