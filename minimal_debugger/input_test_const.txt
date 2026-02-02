@@ -1,0 +1,5 @@
+l dummy/simple
+b 0x401007
+r
+regs
+q

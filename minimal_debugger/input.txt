@@ -1,0 +1,4 @@
+l dummy/simple
+ps
+exit
+

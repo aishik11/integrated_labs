@@ -1,0 +1,12 @@
+l dummy/loop
+b 0x401003
+r
+regs
+s
+regs
+s
+regs
+s
+regs
+c
+q

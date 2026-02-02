@@ -1,0 +1,15 @@
+bin
+src/lexer.yy.c
+src/lexer.yy.o
+src/parser.tab.c
+src/parser.tab.h
+src/parser.tab.o
+build
+Assembler/bin
+Assembler/src/parser.tab.o
+Assembler/src/parser.tab.h
+Assembler/src/parser.tab.c
+Assembler/src/lexer.yy.o
+Assembler/src/lexer.yy.c
+test_push_add_halt.bin
+test_store_load_halt.bin

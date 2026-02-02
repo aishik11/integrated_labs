@@ -1,0 +1,23 @@
+Category,Mnemonic,Opcode,Description,Stack Effect
+Data,PUSH val,0×01,Push 32-bit integer val onto stack.,[]→[val]
+,POP,0×02,Remove the top element.,[val]→[]
+,DUP,0×03,Duplicate the top element.,"[a]→[a,a]"
+,HALT,0×FF,Terminate VM execution.,N/A
+Arithmetic,ADD,0×10,"Pop b, pop a, push a+b.","[a,b]→[a+b]"
+,SUB,0×11,"Pop b, pop a, push a−b.","[a,b]→[a−b]"
+,MUL,0×12,"Pop b, pop a, push a×b.","[a,b]→[a×b]"
+,DIV,0×13,"Pop b, pop a, push a/b.","[a,b]→[a/b]"
+,CMP,0×14,"Push 1 if a<b, else push 0.","[a,b]→[0/1]"
+Bitwise,AND,0×15,"Pop b, pop a, push a & b.","[a,b]→[a&b]"
+,OR,0×16,"Pop b, pop a, push $a \",\ b$.
+,XOR,0×17,"Pop b, pop a, push a ⊕ b.","[a,b]→[a⊕b]"
+,NOT,0×18,"Pop a, push bitwise complement ∼a.",[a]→[∼a]
+,SHL,0×19,"Pop amt, pop val, push val≪amt.","[val,amt]→[val≪amt]"
+,SHR,0×1A,"Pop amt, pop val, push val≫amt.","[val,amt]→[val≫amt]"
+Control,JMP addr,0×20,Unconditional jump to address.,N/A
+,JZ addr,0×21,Jump to addr if top of stack is 0.,[val]→[]
+,JNZ addr,0×22,Jump to addr if top of stack is NOT 0.,[val]→[]
+Memory,STORE idx,0×30,Store top of stack in Memory[idx].,[val]→[]
+,LOAD idx,0×31,Push value from Memory[idx] to stack.,[]→[val]
+,CALL addr,0×40,Push PC+1 to return stack and jump.,N/A
+,RET,0×41,Pop return stack into PC.,N/A
