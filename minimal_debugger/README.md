@@ -1,4 +1,4 @@
-# Minimal Debugger
+@# Minimal Debugger
 
 Minimal Debugger is a lightweight, CLI-based x86-64 debugger for Linux, written in C++. It demonstrates the fundamental concepts of system programming, process control, and memory manipulation using the `ptrace` system call. This project serves as an educational tool to understand how debuggers like GDB work under the hood.
 
