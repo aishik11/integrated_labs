@@ -341,14 +341,20 @@ void VM::step() {
       if (verbose)
         std::cout << " (RET to " << pc << ")" << std::endl;
       break;
+    case CONS:
+    
+      {
+           long tail_val = register_stack.pop();
+           long head_val = register_stack.pop();
+           
+           Object* obj = new_pair((Object*)head_val, (Object*)tail_val);
+           register_stack.push((long)obj, true); // Push as Object
+           if (verbose) std::cout << " (CONS)" << std::endl;
+      }
+      break;
     case HALT:
       if (verbose)
         std::cout << " (HALT)" << std::endl;
-      // We need to signal halt to the run loop. 
-      // For now, let's throw a special exception or rely on run checking HALT? 
-      // Step just executes. The PC won't advance past HALT if we mistakenly executed it... 
-      // Actually, HALT returns in the original code. 
-      // We should probably have a running flag or throw specific Exit exception.
       throw std::runtime_error("HALT"); 
       return;
     default:
@@ -363,7 +369,7 @@ void VM::repl() {
     while (true) {
         std::cout << "debug> ";
         if (!std::getline(std::cin, line)) {
-            break;
+            exit(0);
         }
         if (line == "step" || line == "s") {
             // Executing one step means: return to run loop, let it call step(), then loop back and call repl() if debug_mode is true.

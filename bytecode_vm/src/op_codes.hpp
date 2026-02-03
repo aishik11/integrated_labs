@@ -34,6 +34,8 @@ typedef enum Opcode {
   // Control flow - functions
   CALL = 0x40,
   RET,
+  // Object
+  CONS = 0x50,
   // Halt
   HALT = 0xFF,
 } Opcode;

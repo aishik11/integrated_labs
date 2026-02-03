@@ -49,6 +49,8 @@ Opcode longToOpcode(long val) {
     return CALL;
   case 0x41:
     return RET;
+  case 0x50:
+    return CONS;
   case 0xFF:
     return HALT;
   default:
@@ -104,6 +106,8 @@ std::string opcodeToString(Opcode opcode) {
     return "CALL";
   case RET:
     return "RET";
+  case CONS:
+    return "CONS";
   case HALT:
     return "HALT";
   default:

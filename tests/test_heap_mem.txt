@@ -1,0 +1,11 @@
+submit heap_test.asm
+debug 1
+step
+step
+step
+memstat
+step
+step
+memstat
+leaks
+quit

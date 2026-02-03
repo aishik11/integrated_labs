@@ -1,0 +1,6 @@
+submit simple_loop.asm
+debug 1
+break 2
+continue
+step
+quit

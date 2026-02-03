@@ -41,6 +41,7 @@ static int handle_label(char* label) {
 "LOAD"      { return T_LOAD; }
 "CALL"      { return T_CALL; }
 "RET"       { return T_RET; }
+"CONS"      { return T_CONS; }
 
 [a-zA-Z_][a-zA-Z0-9_]*:  { return handle_label(yytext); }
 [a-zA-Z_][a-zA-Z0-9_]*   { yylval.sval = strdup(yytext); return T_ID; }

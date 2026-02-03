@@ -71,7 +71,7 @@ void emit_long(long value) {
 %token T_AND T_OR T_XOR T_NOT T_SHL T_SHR 
 %token T_JMP T_JZ T_JNZ 
 %token T_STORE T_LOAD 
-%token T_CALL T_RET
+%token T_CALL T_RET T_CONS
 %token <sval> T_LABEL
 %type <sval> label_def 
 
@@ -159,6 +159,7 @@ instruction:
         }
     } 
     | T_RET { emit_long(0x41); } 
+    | T_CONS { emit_long(0x50); } 
     ;
 
 %%
