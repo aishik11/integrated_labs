@@ -6,10 +6,11 @@
 
 VM *global_vm = nullptr;
 
-void handle_signal(int signal) {
-  if (signal == SIGUSR1 && global_vm) {
-    global_vm->debug_mode = true;
-    // We don't need to do anything else; the run loop checks this flag
+void handle_signal(int sig) {
+  if (global_vm) {
+    if (sig == SIGUSR1) {
+        global_vm->debug_mode = true;
+    }
   }
 }
 

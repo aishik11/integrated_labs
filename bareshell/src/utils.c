@@ -207,6 +207,8 @@ int execute_debug_job(struct Command *cmd) {
 }
 
 
+
+
 int execute_commands(struct Command *command_ptr) {
 
   int prev_pipe_read = STDIN_FILENO;
@@ -226,6 +228,7 @@ int execute_commands(struct Command *command_ptr) {
       if (strcmp(command_ptr->prog_name, "debug") == 0) {
           return execute_debug_job(command_ptr);
       }
+
   }
 
   // handling exit

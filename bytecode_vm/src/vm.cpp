@@ -4,9 +4,12 @@
 #include <stdexcept>
 #include <vector>
 
-VM::VM() : pc(0), verbose(false), heap_head(nullptr), num_objects(0) {}
+VM::VM() : pc(0), verbose(false), debug_mode(false), stats_requested(false), heap_head(nullptr), num_objects(0) {}
 
 VM::~VM() {
+  if (num_objects > 0) {
+      std::cerr << "Memory Leak Detected: " << num_objects << " objects remaining on heap." << std::endl;
+  }
   while (heap_head) {
     Object *next = heap_head->next;
     free(heap_head);
@@ -384,8 +387,22 @@ void VM::repl() {
             }
         } else if (line == "stack") {
             printStack();
+        } else if (line == "memstat") {
+            printStats();
+        } else if (line == "gc") {
+            gc(); 
+        } else if (line == "leaks") {
+             std::cout << "Heap dump:" << std::endl;
+             Object* curr = heap_head;
+             int count = 0;
+             while(curr) {
+                 std::cout << "  Object at " << curr << " Type: " << curr->type << std::endl;
+                 curr = curr->next;
+                 count++;
+             }
+             std::cout << "Total active objects: " << count << std::endl;
         } else if (line == "help") {
-            std::cout << "Commands: step(s), continue(c), break <addr>, stack" << std::endl;
+            std::cout << "Commands: step(s), continue(c), break <addr>, stack, memstat, gc, leaks" << std::endl;
         } else if (line == "quit") {
             exit(0);
         } else {
@@ -405,6 +422,10 @@ void VM::run() {
   }
 
   while (true) {
+      if (stats_requested) {
+          stats_requested = false;
+          printStats();
+      }
       if (debug_mode || breakpoints.count(pc)) {
           debug_mode = true; // Hit breakpoint triggers debug mode
           std::cout << "Stopped at PC: " << pc << std::endl;
@@ -431,4 +452,11 @@ void VM::printStack() {
   if (stack_elements.empty()) {
     std::cout << "  (empty)" << std::endl;
   }
+}
+
+void VM::printStats() {
+    std::cout << "--- VM Memory Stats ---" << std::endl;
+    std::cout << "Stack Size: " << register_stack.get_size() << std::endl;
+    std::cout << "Heap Objects: " << num_objects << std::endl;
+    std::cout << "-----------------------" << std::endl;
 }

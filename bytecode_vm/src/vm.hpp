@@ -40,6 +40,9 @@ public:
   void step();      // Execute single instruction
   void setVerbose(bool v);
   void printStack();
+  void printStats();
+  
+  bool stats_requested;
 
 private:
 };
